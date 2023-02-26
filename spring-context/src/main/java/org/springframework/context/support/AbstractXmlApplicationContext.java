@@ -16,8 +16,6 @@
 
 package org.springframework.context.support;
 
-import java.io.IOException;
-
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.ResourceEntityResolver;
@@ -25,6 +23,8 @@ import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.Resource;
 import org.springframework.lang.Nullable;
+
+import java.io.IOException;
 
 /**
  * Convenient base class for {@link org.springframework.context.ApplicationContext}
@@ -85,12 +85,15 @@ public abstract class AbstractXmlApplicationContext extends AbstractRefreshableC
 		// Configure the bean definition reader with this context's
 		// resource loading environment.
 		beanDefinitionReader.setEnvironment(this.getEnvironment());
+		// 为Bean读取器设置资源加载器（因为容器本身也实现了DefaultResourceLoader）
 		beanDefinitionReader.setResourceLoader(this);
 		beanDefinitionReader.setEntityResolver(new ResourceEntityResolver(this));
 
 		// Allow a subclass to provide custom initialization of the reader,
 		// then proceed with actually loading the bean definitions.
+		// 这里主要实现xml 校验
 		initBeanDefinitionReader(beanDefinitionReader);
+		//Bean 读取器真正实现加载的方法
 		loadBeanDefinitions(beanDefinitionReader);
 	}
 
@@ -119,17 +122,23 @@ public abstract class AbstractXmlApplicationContext extends AbstractRefreshableC
 	 * @see #getResourcePatternResolver
 	 */
 	protected void loadBeanDefinitions(XmlBeanDefinitionReader reader) throws BeansException, IOException {
+		// 获取Bean配置资源定位
 		Resource[] configResources = getConfigResources();
 		if (configResources != null) {
+			// 调用父类AbstractBeanDefinitionReader 读取定位的Bean配置资源
 			reader.loadBeanDefinitions(configResources);
 		}
+
 		String[] configLocations = getConfigLocations();
 		if (configLocations != null) {
+			//调用AbstractBeanDefinitionReader 读取定位的Bean配置资源
 			reader.loadBeanDefinitions(configLocations);
 		}
 	}
 
 	/**
+	 * 委派给子类实现，调用子类获取Bean配置资源定位方法，如果我们直接
+	 * new ClassPathXmlApplicationContext， 获取到就为空，因为不会设置
 	 * Return an array of Resource objects, referring to the XML bean definition
 	 * files that this context should be built with.
 	 * <p>The default implementation returns {@code null}. Subclasses can override

@@ -16,12 +16,12 @@
 
 package org.springframework.context.annotation;
 
-import java.lang.annotation.Annotation;
-
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.core.annotation.AnnotationAttributes;
 import org.springframework.util.Assert;
+
+import java.lang.annotation.Annotation;
 
 /**
  * A {@link ScopeMetadataResolver} implementation that by default checks for
@@ -79,14 +79,18 @@ public class AnnotationScopeMetadataResolver implements ScopeMetadataResolver {
 		ScopeMetadata metadata = new ScopeMetadata();
 		if (definition instanceof AnnotatedBeanDefinition) {
 			AnnotatedBeanDefinition annDef = (AnnotatedBeanDefinition) definition;
+			//从注解Bean定义类的属性中查询属性为Scope值（类上标记的注解都被保存在Metadata中了），即是@Scope注解的值
+			//annDef.getMetadata().getAnnotationAttributes() 方法将bean中所有注解和注解值存放在一个map集合中
 			AnnotationAttributes attributes = AnnotationConfigUtils.attributesFor(
 					annDef.getMetadata(), this.scopeAnnotationType);
 			if (attributes != null) {
 				metadata.setScopeName(attributes.getString("value"));
 				ScopedProxyMode proxyMode = attributes.getEnum("proxyMode");
+
 				if (proxyMode == ScopedProxyMode.DEFAULT) {
 					proxyMode = this.defaultProxyMode;
 				}
+				//如果@Scope的proxyMode 属性为DEFAULT 或者 NO,则设置proxyMode 为NO
 				metadata.setScopedProxyMode(proxyMode);
 			}
 		}

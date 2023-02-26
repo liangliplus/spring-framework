@@ -16,8 +16,6 @@
 
 package org.springframework.context.annotation;
 
-import java.util.function.Supplier;
-
 import org.springframework.beans.factory.config.BeanDefinitionCustomizer;
 import org.springframework.beans.factory.support.BeanNameGenerator;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
@@ -25,6 +23,8 @@ import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+
+import java.util.function.Supplier;
 
 /**
  * Standalone application context, accepting <em>component classes</em> as input &mdash;
@@ -53,12 +53,17 @@ import org.springframework.util.Assert;
  */
 public class AnnotationConfigApplicationContext extends GenericApplicationContext implements AnnotationConfigRegistry {
 
+	//读取注解的Bean定义读取器（作用类似XmlBeanDefinitionReader）
 	private final AnnotatedBeanDefinitionReader reader;
-
+	//扫描指定路径中注解的Bean定义扫描器
 	private final ClassPathBeanDefinitionScanner scanner;
 
 
 	/**
+	 * 创建一个默认的AnnotationConfigApplicationContext ,
+	 * 通过调用register 方法完成把配置类（一般为`@Configuration`）创建为AnnotatedGenericBeanDefinition
+	 * 通过调用scan 把扫描到`@Component` 及子类， JRS-330 named 以及ManagedBean 变为 ScanedBeanDefinition
+	 * 最后调用refresh() 方法刷新容器，触发对注解Bean的载入，解析和注册过程。
 	 * Create a new AnnotationConfigApplicationContext that needs to be populated
 	 * through {@link #register} calls and then manually {@linkplain #refresh refreshed}.
 	 */
@@ -78,6 +83,7 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 	}
 
 	/**
+	 * 常用构造函数，通过将配置类(标记{@link Configuration})传递给构造函数，实现相应配置类中bean 自动注册到容器
 	 * Create a new AnnotationConfigApplicationContext, deriving bean definitions
 	 * from the given component classes and automatically refreshing the context.
 	 * @param componentClasses one or more component classes &mdash; for example,
@@ -114,6 +120,7 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 	}
 
 	/**
+	 * 为容器的注解bean 读取器 和 Bean扫描器设置bean 名词生成器
 	 * Provide a custom {@link BeanNameGenerator} for use with {@link AnnotatedBeanDefinitionReader}
 	 * and/or {@link ClassPathBeanDefinitionScanner}, if any.
 	 * <p>Default is {@link AnnotationBeanNameGenerator}.
