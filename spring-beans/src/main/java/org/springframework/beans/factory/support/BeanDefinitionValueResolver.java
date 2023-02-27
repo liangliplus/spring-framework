@@ -87,6 +87,9 @@ class BeanDefinitionValueResolver {
 
 
 	/**
+	 * 当容器为属性进行依赖注入时，如果发现属性值时容器中另外一个Bean实例对象的引用，
+	 * 则容器首先需要根据属性值解析出所引用对象，然后才能将该引用对象注入到目标实例对象上，
+	 * 对属性进行解析由 `resolveValueIfNecessary` 方法实现
 	 * Given a PropertyValue, return a value, resolving any references to other
 	 * beans in the factory if necessary. The value could be:
 	 * <li>A BeanDefinition, which leads to the creation of a corresponding
@@ -112,15 +115,18 @@ class BeanDefinitionValueResolver {
 			RuntimeBeanReference ref = (RuntimeBeanReference) value;
 			return resolveReference(argName, ref);
 		}
+		//对属性值时引用容器另一个bean名称
 		else if (value instanceof RuntimeBeanNameReference) {
 			String refName = ((RuntimeBeanNameReference) value).getBeanName();
 			refName = String.valueOf(doEvaluate(refName));
+			//判断容器是否包含指定名称Bean
 			if (!this.beanFactory.containsBean(refName)) {
 				throw new BeanDefinitionStoreException(
 						"Invalid bean name '" + refName + "' in bean reference for " + argName);
 			}
 			return refName;
 		}
+		//对Bean类型属性解析，是Bean中内部类
 		else if (value instanceof BeanDefinitionHolder) {
 			// Resolve BeanDefinitionHolder: contains BeanDefinition with name and aliases.
 			BeanDefinitionHolder bdHolder = (BeanDefinitionHolder) value;
@@ -144,11 +150,13 @@ class BeanDefinitionValueResolver {
 			}
 			return result;
 		}
+		//对集合数组类型的属性解析
 		else if (value instanceof ManagedArray) {
 			// May need to resolve contained runtime references.
 			ManagedArray array = (ManagedArray) value;
 			Class<?> elementType = array.resolvedElementType;
 			if (elementType == null) {
+				//获取数组元素的类型
 				String elementTypeName = array.getElementTypeName();
 				if (StringUtils.hasText(elementTypeName)) {
 					try {
@@ -180,6 +188,8 @@ class BeanDefinitionValueResolver {
 			// May need to resolve contained runtime references.
 			return resolveManagedMap(argName, (Map<?, ?>) value);
 		}
+
+		//解析Properties
 		else if (value instanceof ManagedProperties) {
 			Properties original = (Properties) value;
 			Properties copy = new Properties();
@@ -302,7 +312,9 @@ class BeanDefinitionValueResolver {
 	private Object resolveReference(Object argName, RuntimeBeanReference ref) {
 		try {
 			Object bean;
+			//获取引用的Bean名称
 			Class<?> beanType = ref.getBeanType();
+			//如果引用的对象在父容器中，则从父类容器中获取指定的引用对象
 			if (ref.isToParent()) {
 				BeanFactory parent = this.beanFactory.getParentBeanFactory();
 				if (parent == null) {
@@ -318,6 +330,7 @@ class BeanDefinitionValueResolver {
 					bean = parent.getBean(String.valueOf(doEvaluate(ref.getBeanName())));
 				}
 			}
+			//从当前容器中获取指定引用Bean对象，如果指定的Bean没有被实例化，则递归触发引用Bean的初始化和依赖注入
 			else {
 				String resolvedName;
 				if (beanType != null) {
@@ -329,11 +342,13 @@ class BeanDefinitionValueResolver {
 					resolvedName = String.valueOf(doEvaluate(ref.getBeanName()));
 					bean = this.beanFactory.getBean(resolvedName);
 				}
+				//保存当前实例对象 和 依赖对象的关系
 				this.beanFactory.registerDependentBean(resolvedName, this.beanName);
 			}
 			if (bean instanceof NullBean) {
 				bean = null;
 			}
+			//返回引用的bean 实例
 			return bean;
 		}
 		catch (BeansException ex) {
@@ -414,6 +429,7 @@ class BeanDefinitionValueResolver {
 	private Object resolveManagedArray(Object argName, List<?> ml, Class<?> elementType) {
 		Object resolved = Array.newInstance(elementType, ml.size());
 		for (int i = 0; i < ml.size(); i++) {
+			//递归解析array的每一个元素， 将解析的值设置到resolved中
 			Array.set(resolved, i, resolveValueIfNecessary(new KeyedArgName(argName, i), ml.get(i)));
 		}
 		return resolved;

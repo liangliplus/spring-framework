@@ -196,7 +196,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	//---------------------------------------------------------------------
 	// Implementation of BeanFactory interface
 	//---------------------------------------------------------------------
-
+	//向IOC 容器中获取指定名称bean
 	@Override
 	public Object getBean(String name) throws BeansException {
 		return doGetBean(name, null, null, false);
@@ -242,11 +242,13 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	protected <T> T doGetBean(
 			String name, @Nullable Class<T> requiredType, @Nullable Object[] args, boolean typeCheckOnly)
 			throws BeansException {
-
+		//根据指定名称获取被管理bean
+		//如果获取的是别名，将别名转换为规范的bean 名称
 		String beanName = transformedBeanName(name);
 		Object bean;
 
 		// Eagerly check singleton cache for manually registered singletons.
+		// 先从缓存中获取是否已经有被创建过的单例类型的bean
 		Object sharedInstance = getSingleton(beanName);
 		if (sharedInstance != null && args == null) {
 			if (logger.isTraceEnabled()) {
@@ -258,18 +260,24 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 					logger.trace("Returning cached instance of singleton bean '" + beanName + "'");
 				}
 			}
+			//获取给定bean 的实例对象，主要是完成FactoryBean相关处理（注意FactoryBean 也被BeanFactory 管理）
 			bean = getObjectForBeanInstance(sharedInstance, name, beanName, null);
 		}
 
 		else {
 			// Fail if we're already creating this bean instance:
 			// We're assumably within a circular reference.
+			// 这里和循环依赖有关
 			if (isPrototypeCurrentlyInCreation(beanName)) {
 				throw new BeanCurrentlyInCreationException(beanName);
 			}
 
 			// Check if bean definition exists in this factory.
+			// 对IOC 容器中是否存在指定名称的BeanDefinition 进行检查
+			// 首先检查是否在当前的BeanFactory 中获取所需的Bean ，如果获取不到，则委托给父类容器去查找
+			// ，如果还是找不到则沿着容器的继承体系向父类容器查找（类似java 的ClassLoader，先从当前ClassLoader 查找，查找不到，则委派给父ClassLoader）
 			BeanFactory parentBeanFactory = getParentBeanFactory();
+			// 当前容器有父容器，且当前容器不存在指定名称的Bean定义
 			if (parentBeanFactory != null && !containsBeanDefinition(beanName)) {
 				// Not found -> check parent.
 				String nameToLookup = originalBeanName(name);
@@ -290,15 +298,20 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				}
 			}
 
+			//创建Bean 是否需要进行类型验证
 			if (!typeCheckOnly) {
+				//像容器标记指定bean 已经被创建（就是通过一个set保存准备创建的beanName）
 				markBeanAsCreated(beanName);
 			}
 
 			try {
+				//根据指定Bean名称获取其父类的bean定义
+				//主要解决Bean继承时子类合并父类公共属性问题
 				RootBeanDefinition mbd = getMergedLocalBeanDefinition(beanName);
 				checkMergedBeanDefinition(mbd, beanName, args);
 
 				// Guarantee initialization of beans that the current bean depends on.
+				// 获取当前bean 所有依赖的bean
 				String[] dependsOn = mbd.getDependsOn();
 				if (dependsOn != null) {
 					for (String dep : dependsOn) {
@@ -306,8 +319,10 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 							throw new BeanCreationException(mbd.getResourceDescription(), beanName,
 									"Circular depends-on relationship between '" + beanName + "' and '" + dep + "'");
 						}
+						//递归调用getBean 方法，获取当前Bean的依赖Bean
 						registerDependentBean(dep, beanName);
 						try {
+							//把依赖bean 注册给当前依赖的bean
 							getBean(dep);
 						}
 						catch (NoSuchBeanDefinitionException ex) {
@@ -319,8 +334,11 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 
 				// Create bean instance.
 				if (mbd.isSingleton()) {
+					//使用勒匿名类内部类，创建Bean实例对象，并且注册给所依赖的对象
 					sharedInstance = getSingleton(beanName, () -> {
 						try {
+							//（重要）创建一个指定bean实例对象（如果有父类继承，则合并子类和父类的定义 ）
+							// 这里AbstractBeanFactory 只定义类方法，具体实现委派给子类 AbstractAutowireCapableBeanFactory.createBean实现
 							return createBean(beanName, mbd, args);
 						}
 						catch (BeansException ex) {
@@ -331,6 +349,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 							throw ex;
 						}
 					});
+					//（重要）获取给定bean 的实例对象
 					bean = getObjectForBeanInstance(sharedInstance, name, beanName, mbd);
 				}
 
@@ -339,6 +358,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 					Object prototypeInstance = null;
 					try {
 						beforePrototypeCreation(beanName);
+						//原型bean 每次都会创建一个新的
 						prototypeInstance = createBean(beanName, mbd, args);
 					}
 					finally {
@@ -348,6 +368,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				}
 
 				else {
+					//要创建的bean 既不是单例，也不是原型，获取一个指定生命周期范围的实例
 					String scopeName = mbd.getScope();
 					if (!StringUtils.hasLength(scopeName)) {
 						throw new IllegalStateException("No scope name defined for bean '" + beanName + "'");
@@ -383,6 +404,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 		}
 
 		// Check if required type matches the type of the actual bean instance.
+		// 对bean 实例进行类型检查
 		if (requiredType != null && !requiredType.isInstance(bean)) {
 			try {
 				T convertedBean = getTypeConverter().convertIfNecessary(bean, requiredType);

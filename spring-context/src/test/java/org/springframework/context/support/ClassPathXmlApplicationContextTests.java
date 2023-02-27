@@ -73,6 +73,14 @@ public class ClassPathXmlApplicationContextTests {
 	private static final String TEST_PROPERTIES = "test.properties";
 
 
+
+	@Test
+	public void testUser() {
+		ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("META-INF/applicationContextUser.xml");
+		Object user = ctx.getBean("user");
+		System.out.println(user);
+	}
+
 	@Test
 	public void testSingleConfigLocation() {
 		ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext(FQ_SIMPLE_CONTEXT);
