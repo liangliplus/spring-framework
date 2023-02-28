@@ -77,6 +77,7 @@ public class MethodParameter {
 	Map<Integer, Integer> typeIndexesPerLevel;
 
 	/** The containing class. Could also be supplied by overriding {@link #getContainingClass()} */
+	// 包含该方法的Class类
 	@Nullable
 	private volatile Class<?> containingClass;
 

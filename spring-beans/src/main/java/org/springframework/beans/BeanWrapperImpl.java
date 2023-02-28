@@ -213,6 +213,7 @@ public class BeanWrapperImpl extends AbstractNestablePropertyAccessor implements
 		}
 		TypeDescriptor td = cachedIntrospectionResults.getTypeDescriptor(pd);
 		if (td == null) {
+			//TypeDescriptor 获取到对应属性的名称以类型，还有对应方法上注解等信息 （可以把一个Property 转换为一个TypeDescriptor，也可以是一个字段或者一个MethodParameter）
 			td = cachedIntrospectionResults.addTypeDescriptor(pd, new TypeDescriptor(property(pd)));
 		}
 		return convertForProperty(propertyName, null, value, td);
@@ -220,6 +221,7 @@ public class BeanWrapperImpl extends AbstractNestablePropertyAccessor implements
 
 	private Property property(PropertyDescriptor pd) {
 		GenericTypeAwarePropertyDescriptor gpd = (GenericTypeAwarePropertyDescriptor) pd;
+		//Property 包含一个属性名称以及class类型，还有对应的读写方法，
 		return new Property(gpd.getBeanClass(), gpd.getReadMethod(), gpd.getWriteMethod(), gpd.getName());
 	}
 
