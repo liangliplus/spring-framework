@@ -16,19 +16,8 @@
 
 package org.springframework.beans;
 
-import java.beans.PropertyEditor;
-import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Optional;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.springframework.core.CollectionFactory;
 import org.springframework.core.convert.ConversionFailedException;
 import org.springframework.core.convert.ConversionService;
@@ -38,6 +27,16 @@ import org.springframework.util.ClassUtils;
 import org.springframework.util.NumberUtils;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
+
+import java.beans.PropertyEditor;
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Internal helper class for converting property values to target types.
@@ -116,6 +115,7 @@ class TypeConverterDelegate {
 			@Nullable Class<T> requiredType, @Nullable TypeDescriptor typeDescriptor) throws IllegalArgumentException {
 
 		// Custom editor for this type?
+		// 如果有自己实现过PropertyEditor并添加到spring 容器中了
 		PropertyEditor editor = this.propertyEditorRegistry.findCustomEditor(requiredType, propertyName);
 
 		ConversionFailedException conversionAttemptEx = null;
@@ -126,6 +126,7 @@ class TypeConverterDelegate {
 			TypeDescriptor sourceTypeDesc = TypeDescriptor.forObject(newValue);
 			if (conversionService.canConvert(sourceTypeDesc, typeDescriptor)) {
 				try {
+					//ConversionService 的转换逻辑
 					return (T) conversionService.convert(newValue, sourceTypeDesc, typeDescriptor);
 				}
 				catch (ConversionFailedException ex) {
@@ -149,9 +150,11 @@ class TypeConverterDelegate {
 					}
 				}
 			}
+			//如果转换器为空，获取默认的属性转换器
 			if (editor == null) {
 				editor = findDefaultEditor(requiredType);
 			}
+			//调用转换方法
 			convertedValue = doConvertValue(oldValue, convertedValue, requiredType, editor);
 		}
 
@@ -191,6 +194,7 @@ class TypeConverterDelegate {
 					// We can stringify any primitive value...
 					return (T) convertedValue.toString();
 				}
+				//如果value是string，但是返回类型不是string
 				else if (convertedValue instanceof String && !requiredType.isInstance(convertedValue)) {
 					if (conversionAttemptEx == null && !requiredType.isInterface() && !requiredType.isEnum()) {
 						try {
@@ -363,6 +367,8 @@ class TypeConverterDelegate {
 			// we just want to allow special PropertyEditors to override setValue
 			// for type conversion from non-String values to the required type.
 			try {
+				//调用属性编辑器的setValue 方法，调用完后，类型已经被转换被设置到value属性，
+				// 通过editor.getValue()就能获取转换转换后的值
 				editor.setValue(convertedValue);
 				Object newConvertedValue = editor.getValue();
 				if (newConvertedValue != convertedValue) {

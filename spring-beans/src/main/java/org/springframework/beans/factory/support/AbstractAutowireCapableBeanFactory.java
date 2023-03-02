@@ -525,12 +525,11 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		// Allow post-processors to modify the merged bean definition.
-		// 调用PostProcessor 后置处理器
 		synchronized (mbd.postProcessingLock) {
 			if (!mbd.postProcessed) {
 				try {
-					//调用 MergedBeanDefinitionPostProcessor 合并bean 定义
-					// (会调用AutowiredAnnotationBeanPostProcessor的 postProcessMergedBeanDefinition)
+					//调用 MergedBeanDefinitionPostProcessor#postProcessMergedBeanDefinition
+					// (AutowiredAnnotationBeanPostProcessor也是该类型)
 					applyMergedBeanDefinitionPostProcessors(mbd, beanType, beanName);
 				}
 				catch (Throwable ex) {
@@ -1706,7 +1705,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 				boolean convertible = bw.isWritableProperty(propertyName) &&
 						!PropertyAccessorUtils.isNestedOrIndexedProperty(propertyName);
 				if (convertible) {
-					//如果可转换，则调用convertForProperty， 对resolvedValue 进行类型转换
+					//(重要，属性转换的实现 )如果可转换，则调用convertForProperty， 对resolvedValue 进行类型转换
 					convertedValue = convertForProperty(resolvedValue, propertyName, bw, converter);
 				}
 				// Possibly store converted value in merged bean definition,
@@ -1767,6 +1766,9 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 
 	/**
+	 * in spring, BeanPostProcessor 的实现子类非常的多，分别完成不同操作：
+	 * eg: AOP 面向切面编程注册通知适配器，Bean对象的数据校验，Bean集成属性，方法合并等
+	 * 我们需要了解AOP 切面织入逻辑，可以看AbstractAutoProxyCreator ，重写postProcessAfterInitialization
 	 * Initialize the given bean instance, applying factory callbacks
 	 * as well as init methods and bean post processors.
 	 * <p>Called from {@link #createBean} for traditionally defined beans,
