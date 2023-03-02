@@ -560,7 +560,11 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			// bean对象的初始化，依赖注入的触发入口
 			// 将bean实例对象封装，并且bean定义中配置属性赋值给实例对象
 			populateBean(beanName, mbd, instanceWrapper);
-			// 初始化bean 对象
+			// 初始化bean 对象 (当我们bean 实现勒相关BeanPostProcessor ，initMethod 相关接口)
+			//1. BeanNameAware BeanClassLoaderAware  BeanFactoryAware 三个Aware 接口set 方法调用
+			//2. BeanPostProcessor 的bean 初始化之前方法调用
+			//3. 包括 InitializingBean 以及 init-Method 的调用
+			//4. BeanPostProcessor 的bean 初始化之后方法调用
 			exposedObject = initializeBean(beanName, exposedObject, mbd);
 		}
 		catch (Throwable ex) {

@@ -81,6 +81,10 @@ import org.springframework.util.ClassUtils;
  * Base implementation of the {@link PropertyEditorRegistry} interface.
  * Provides management of default editors and custom editors.
  * Mainly serves as base class for {@link BeanWrapperImpl}.
+ * PropertyEditorRegistrySupport 实现勒 PropertyEditorRegistry 接口。
+ * 提供对默认editors 和 customEditors 管理（就可以可以增删改）
+ * 已经还依赖 conversionService， 当配置勒 conversionService，还可以使用它来做类型转换
+ *
  *
  * @author Juergen Hoeller
  * @author Rob Harrop
