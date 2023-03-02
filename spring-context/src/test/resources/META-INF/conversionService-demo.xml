@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:context="http://www.springframework.org/schema/context"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans
+        https://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        https://www.springframework.org/schema/context/spring-context.xsd">
+
+	<!-- 默认值ConversionService可以在字符串、数字、枚举、集合、映射和其他常见类型之间进行转换
+		 如果需要注册转换器，converters 属性即可,这个converters 中的元素必须实现
+		 Converter、ConverterFactory或GenericConverter 中任意一个
+	-->
+	<bean id="conversionService"
+		  class="org.springframework.context.support.ConversionServiceFactoryBean"/>
+
+
+</beans>

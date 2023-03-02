@@ -16,11 +16,10 @@
 
 package org.springframework.context.annotation;
 
-import java.util.Map;
-import java.util.regex.Pattern;
-
+import indi.kenneth.aspect.AppConfig;
+import indi.kenneth.aspect.UserAspect;
+import indi.kenneth.aspect.service.UserService;
 import org.junit.jupiter.api.Test;
-
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +32,9 @@ import org.springframework.context.annotation6.Jsr330NamedForScanning;
 import org.springframework.core.ResolvableType;
 import org.springframework.util.ObjectUtils;
 
+import java.util.Map;
+import java.util.regex.Pattern;
+
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -44,6 +46,21 @@ import static org.springframework.util.StringUtils.uncapitalize;
  */
 @SuppressWarnings("resource")
 class AnnotationConfigApplicationContextTests {
+
+	@Test
+	void aspect() {
+		//注意被aop拦截的类没有实现接口，就需要指定下@EnableAspectJAutoProxy(proxyTargetClass = true)
+		//强制指定使用cglib拦截
+		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(AppConfig.class);
+		UserAspect bean1 = context.getBean(UserAspect.class);
+		System.out.println(bean1);
+
+		UserService bean = context.getBean(UserService.class);
+		bean.addUser("zhangsan");
+
+
+
+	}
 
 	@Test
 	void scanAndRefresh() {

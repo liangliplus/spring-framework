@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:context="http://www.springframework.org/schema/context"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans
+        https://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        https://www.springframework.org/schema/context/spring-context.xsd">
+
+	<bean id="sample" class="indi.kenneth.customeditor.DependsOnExoticType">
+		<property name="type" value="aNameForExoticType"/>
+	</bean>
+
+	<!--优先使用 customEditors 中属性编辑器，如果匹配不到则通过propertyEditorRegistrars 是否有能处理的转换器-->
+	<!--我们配置CustomEditorConfigurer Bean，默认也是单例，容器refresh时也会进行getBean 创建对象实例，然后它有依赖的属性
+	 分别是customeEditors 和 propertyEditorRegistrars， 就会从容器找对应实现依赖注入给它-->
+	<bean class="org.springframework.beans.factory.config.CustomEditorConfigurer">
+		<property name="customEditors">
+			<map>
+				<!--ExoticType的class类型使用ExoticTypeEditor 属性编辑器处理 -->
+				<entry key="indi.kenneth.customeditor.ExoticType" value="indi.kenneth.customeditor.ExoticTypeEditor"/>
+			</map>
+		</property>
+		<property name="propertyEditorRegistrars">
+			<list>
+				<ref bean="customPropertyEditorRegistrars"/>
+			</list>
+		</property>
+	</bean>
+
+	<bean id="customPropertyEditorRegistrars" class="indi.kenneth.customeditor.CustomPropertyEditorRegistrar"/>
+
+
+
+
+
+</beans>
