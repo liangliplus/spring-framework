@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:aop="http://www.springframework.org/schema/aop"
+	   xmlns:context="http://www.springframework.org/schema/context"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans-2.0.xsd
+				http://www.springframework.org/schema/aop https://www.springframework.org/schema/aop/spring-aop-2.0.xsd http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd">
+	
+	<!--component-scan包含 <context:annotation-config/>
+	    现在就是扫描 indi.kenneth.aspect.service 这个路径
+	-->
+	<context:component-scan base-package="indi.kenneth.aspect.service,indi.kenneth.dao"/>
+	
+	<bean id="xmlAspect" class="indi.kenneth.aop.XmlAspect"/>
+
+
+	<aop:config>
+		<aop:aspect ref="xmlAspect">
+			<!--
+				配置aop:pointCut 会初始化AspectJExpressionPointcut bean 因为我们使用的是 expression 表达式
+				配置 一个aop:before 初始化 AspectJPointcutAdvisor 包含pointCut 和 advice
+				配置一个aop:after 初始化 AspectJPointcutAdvisor 包含pointCut 和 advice
+			 -->
+			<aop:pointcut id="simplePointcut"  expression="execution(* indi.kenneth.aspect.service.*..*(..))"/>
+			<aop:before method="before" pointcut-ref="simplePointcut" />
+			<aop:after method="after" pointcut-ref="simplePointcut" />
+			<!--其他建议 aop:after,aop:throwing -->
+		</aop:aspect>
+
+	</aop:config>
+</beans>

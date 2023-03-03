@@ -288,7 +288,10 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	 */
 	@Override
 	public Object postProcessAfterInitialization(@Nullable Object bean, String beanName) {
+		// 默认AbstractAutoProxyCreator 是 AspectJAwareAdvisorAutoProxyCreator
+		// 注解@Aspect 对应 AnnotationAwareAspectJAutoProxyCreator， 也是继承自AspectJAwareAdvisorAutoProxyCreator
 		if (bean != null) {
+			//获取缓存key（对于普通bean就是 beanName， 如果beanClass 是FactoryBean ，则beanName为&beanName）
 			Object cacheKey = getCacheKey(bean.getClass(), beanName);
 			if (this.earlyProxyReferences.remove(cacheKey) != bean) {
 				//核心方法
@@ -337,7 +340,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 		}
 		//判断是否是一些InfrastructureClass 或者是否应该跳过这个bean
 		/**
-		 * InfrastructureClass  是指 Adive/PointCut/Advisor等接口的实现类
+		 * InfrastructureClass  是指 Advice/PointCut/Advisor等接口的实现类
 		 * shouldSkip 默认实现为返回false， 是protected，子类可以覆盖
 		 */
 		if (isInfrastructureClass(bean.getClass()) || shouldSkip(bean.getClass(), beanName)) {
@@ -346,7 +349,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 		}
 
 		// Create proxy if we have advice.
-		// 获取这个bean 的advice
+		// 获取能应用该bean 的advisor， 如果没有，则该类不会被代理
 		Object[] specificInterceptors = getAdvicesAndAdvisorsForBean(bean.getClass(), beanName, null);
 		if (specificInterceptors != DO_NOT_PROXY) {
 			this.advisedBeans.put(cacheKey, Boolean.TRUE);
@@ -477,6 +480,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 
 		//构建advisor（顾问， 就是包含建议和切点 ）
 		Advisor[] advisors = buildAdvisors(beanName, specificInterceptors);
+		//把advisor 和 bean实例设置给 proxyFactory
 		proxyFactory.addAdvisors(advisors);
 		proxyFactory.setTargetSource(targetSource);
 		customizeProxyFactory(proxyFactory);
@@ -485,7 +489,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 		if (advisorsPreFiltered()) {
 			proxyFactory.setPreFiltered(true);
 		}
-		//（重要， 获取代理类）
+		//（重要， 为目标对象创建代理类，这里返回就是代理类勒）
 		return proxyFactory.getProxy(getProxyClassLoader());
 	}
 
@@ -553,6 +557,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 
 		Advisor[] advisors = new Advisor[allInterceptors.size()];
 		for (int i = 0; i < allInterceptors.size(); i++) {
+			//该方法可以把advice 适配为advisor
 			advisors[i] = this.advisorAdapterRegistry.wrap(allInterceptors.get(i));
 		}
 		return advisors;

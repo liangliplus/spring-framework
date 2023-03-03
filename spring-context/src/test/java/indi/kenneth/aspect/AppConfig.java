@@ -8,7 +8,7 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
  * @author kenneth
  * @Date: 2023/3/1
  */
-@EnableAspectJAutoProxy(proxyTargetClass = true)
+@EnableAspectJAutoProxy
 @Configuration
 @ComponentScan("indi.kenneth.aspect")
 public class AppConfig {

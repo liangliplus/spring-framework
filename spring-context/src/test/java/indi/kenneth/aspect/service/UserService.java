@@ -10,7 +10,13 @@ import org.springframework.stereotype.Service;
 public class UserService {
 
 	public void addUser(String userName) {
-		System.out.println("UserService 保存用户");
+		System.out.println("UserService 保存用户" + userName);
+	}
+
+
+	public String queryUserName(Integer id) {
+		System.out.println("查询用户");
+		return "zhangsan";
 	}
 
 }
