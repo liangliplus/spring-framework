@@ -16,30 +16,8 @@
 
 package org.springframework.web.servlet;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import javax.servlet.DispatcherType;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.beans.factory.BeanInitializationException;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
@@ -64,6 +42,15 @@ import org.springframework.web.multipart.MultipartHttpServletRequest;
 import org.springframework.web.multipart.MultipartResolver;
 import org.springframework.web.util.NestedServletException;
 import org.springframework.web.util.WebUtils;
+
+import javax.servlet.DispatcherType;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Central dispatcher for HTTP request handlers/controllers, e.g. for web UI controllers
@@ -489,6 +476,8 @@ public class DispatcherServlet extends FrameworkServlet {
 
 	/**
 	 * This implementation calls {@link #initStrategies}.
+	 *  在FrameworkServlet中定义了一个ContextRefreshListener， 用来监听容器的refresh,然后调用自身
+	 *  onRefresh，子类DispatcherServlet 重写了，会调用到DispatcherServlet#onRefresh(org.springframework.context.ApplicationContext)
 	 */
 	@Override
 	protected void onRefresh(ApplicationContext context) {
@@ -500,14 +489,28 @@ public class DispatcherServlet extends FrameworkServlet {
 	 * <p>May be overridden in subclasses in order to initialize further strategy objects.
 	 */
 	protected void initStrategies(ApplicationContext context) {
+		/**
+		 * DispatcherServlet 声明了一个静态变量 defaultStrategies 和 一个静态代码块初始化默认的策略
+		 * 	就是加载DispatcherServlet.properties 文件 ,里面定义了 LocaleResolver，ThemeResolver，HandlerMapping等下面九大组件默认实现方法
+		 * 	例如调用 initLocaleResolver， 会从IOC 容器获取默认实现，获取不到，则从默认策略中获得class完整路径，然后调用IOC 容器createBean 方法创建
+		 * 	bean 后赋值，这其中九大组件都对应DispatcherServlet 有相应成员变量
+		 * 	例如本地语言的 localeResolver
+		 * 	handlerMappings 就解析为List<HandlerMapping> （因为有多个HandlerMapping的实现类）
+		 * 	handlerAdapters 就解析为List<HandlerAdapter>
+		 */
+		//文件上传的处理器
 		initMultipartResolver(context);
+		//本地语言处理器
 		initLocaleResolver(context);
 		initThemeResolver(context);
+		//handlerMapping处理 （默认处理handlerMapping的类是 BeanNameUrlHandlerMapping）
 		initHandlerMappings(context);
+		//初始化HandlerAdapters (默认有一个RequestMappingHandlerAdapter ，该类是当我们handler为HandlerMethod 时，会用该类处理)
 		initHandlerAdapters(context);
 		initHandlerExceptionResolvers(context);
 		initRequestToViewNameTranslator(context);
 		initViewResolvers(context);
+		//FlashMap 管理器（当我们需要在redirect之后还能获取到请求的参数可以使用）
 		initFlashMapManager(context);
 	}
 

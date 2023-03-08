@@ -52,10 +52,14 @@ public abstract class AbstractDetectingUrlHandlerMapping extends AbstractUrlHand
 	/**
 	 * Calls the {@link #detectHandlers()} method in addition to the
 	 * superclass's initialization.
+	 *
+	 * 父类实现了 WebApplicationObjectSupport，声明了一个 initApplicationContext
+	 * 本质就是通过 ApplicationContextAware 接口来实现，回调赋值后，调用自定义的initApplicationContext
 	 */
 	@Override
 	public void initApplicationContext() throws ApplicationContextException {
 		super.initApplicationContext();
+		//建立所有Controller 和 url 的对应关系
 		detectHandlers();
 	}
 
@@ -69,6 +73,7 @@ public abstract class AbstractDetectingUrlHandlerMapping extends AbstractUrlHand
 	 */
 	protected void detectHandlers() throws BeansException {
 		ApplicationContext applicationContext = obtainApplicationContext();
+		//获取IOC 容器中所有bean的name
 		String[] beanNames = (this.detectHandlersInAncestorContexts ?
 				BeanFactoryUtils.beanNamesForTypeIncludingAncestors(applicationContext, Object.class) :
 				applicationContext.getBeanNamesForType(Object.class));
