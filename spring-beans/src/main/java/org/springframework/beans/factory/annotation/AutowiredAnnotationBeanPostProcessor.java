@@ -99,6 +99,14 @@ import java.util.concurrent.ConcurrentHashMap;
  * version of {@code getBean(Class, args)} and {@code getBean(String, args)}.
  * See {@link Lookup @Lookup's javadoc} for details.
  *
+ * InstantiationAwareBeanPostProcessor 接口可以对beanClass 提前实例化,在 AutowiredAnnotationBeanPostProcessor 方法未进行实现，
+ * 不会对bean 进行提前实例化
+ *
+ * 调用顺序 （依赖注入和这三个方法相关 ）
+ * postProcessMergedBeanDefinition
+ * postProcessBeforeInitialization
+ * postProcessAfterInitialization
+ *
  * @author Juergen Hoeller
  * @author Mark Fisher
  * @author Stephane Nicoll
@@ -440,6 +448,11 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 		return metadata;
 	}
 
+	/**
+	 * 返回的InjectionMetadata（类的抽象） 包含一个方法和字段InjectedElement集合
+	 * @param clazz
+	 * @return
+	 */
 	private InjectionMetadata buildAutowiringMetadata(Class<?> clazz) {
 		if (!AnnotationUtils.isCandidateClass(clazz, this.autowiredAnnotationTypes)) {
 			return InjectionMetadata.EMPTY;
@@ -451,6 +464,7 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 		do {
 			final List<InjectionMetadata.InjectedElement> currElements = new ArrayList<>();
 
+			//在该类上找标记依赖注入相关注解（@Autowired，@Value等 ）
 			ReflectionUtils.doWithLocalFields(targetClass, field -> {
 				MergedAnnotation<?> ann = findAutowiredAnnotation(field);
 				if (ann != null) {
@@ -465,6 +479,7 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 				}
 			});
 
+			//在该类方法上找标记依赖注入相关注解（@Autowired，@Value等 ）
 			ReflectionUtils.doWithLocalMethods(targetClass, method -> {
 				Method bridgedMethod = BridgeMethodResolver.findBridgedMethod(method);
 				if (!BridgeMethodResolver.isVisibilityBridgeMethodPair(method, bridgedMethod)) {
@@ -491,10 +506,11 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 			});
 
 			elements.addAll(0, currElements);
+			//查找该类的父类，有父类则继续循环
 			targetClass = targetClass.getSuperclass();
 		}
 		while (targetClass != null && targetClass != Object.class);
-
+		//构建InjectionMetadata 包含类 和类字段或者方法上的信息
 		return InjectionMetadata.forElements(elements, clazz);
 	}
 

@@ -83,6 +83,7 @@ public abstract class AbstractDetectingUrlHandlerMapping extends AbstractUrlHand
 			String[] urls = determineUrlsForHandler(beanName);
 			if (!ObjectUtils.isEmpty(urls)) {
 				// URL paths found: Let's consider it a handler.
+				// 保存url 和 controller 的关系
 				registerHandler(urls, beanName);
 			}
 		}
