@@ -56,6 +56,7 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 	//读取注解的Bean定义读取器（作用类似XmlBeanDefinitionReader）
 	private final AnnotatedBeanDefinitionReader reader;
 	//扫描指定路径中注解的Bean定义扫描器 (入口为scan 方法，会把对应标记注册的类标记为 BeanDefinition)
+	// 默认会注册PostProcessor
 	private final ClassPathBeanDefinitionScanner scanner;
 
 

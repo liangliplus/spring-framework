@@ -940,6 +940,7 @@ public class DispatcherServlet extends FrameworkServlet {
 		}
 
 		try {
+			// （核心方法 doDispatch）
 			doDispatch(request, response);
 		}
 		finally {
@@ -1012,10 +1013,18 @@ public class DispatcherServlet extends FrameworkServlet {
 			Exception dispatchException = null;
 
 			try {
+				//检查是否文件上传请求
 				processedRequest = checkMultipart(request);
 				multipartRequestParsed = (processedRequest != request);
 
 				// Determine handler for the current request.
+				// 根据当前请求获取handler
+				/**
+				 * 取得当前请求的Controller，这里也称为handler处理器
+				 * 在容器启动阶段保存了url 和 controller的关系
+				 * 这里还没有直接返回controller，返回的是HandlerExecutionChain 请求处理链对象
+				 * 该对象封装了handler 和 interceptors
+				 */
 				mappedHandler = getHandler(processedRequest);
 				if (mappedHandler == null) {
 					noHandlerFound(processedRequest, response);
@@ -1023,6 +1032,7 @@ public class DispatcherServlet extends FrameworkServlet {
 				}
 
 				// Determine handler adapter for the current request.
+				// 根据当前请求获取handlerAdapter
 				HandlerAdapter ha = getHandlerAdapter(mappedHandler.getHandler());
 
 				// Process last-modified header, if supported by the handler.
@@ -1035,18 +1045,22 @@ public class DispatcherServlet extends FrameworkServlet {
 					}
 				}
 
+				//处理HandlerInterceptor 的preHandler 前置拦截
 				if (!mappedHandler.applyPreHandle(processedRequest, response)) {
 					return;
 				}
 
 				// Actually invoke the handler.
+				// 实际调用handler 方法，返回视图对象
 				mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
 
 				if (asyncManager.isConcurrentHandlingStarted()) {
 					return;
 				}
 
+				//应用默认视图名称
 				applyDefaultViewName(processedRequest, mv);
+				// 处理HandlerInterceptor的 postHandler 后置拦截
 				mappedHandler.applyPostHandle(processedRequest, response, mv);
 			}
 			catch (Exception ex) {
