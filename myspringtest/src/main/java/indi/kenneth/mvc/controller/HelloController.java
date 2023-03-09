@@ -9,12 +9,13 @@ import org.springframework.web.bind.annotation.ResponseBody;
  * @Date 2023/3/8
  */
 @Controller
+@RequestMapping("/hello")
 public class HelloController {
 
-	@RequestMapping("/hello")
+	@RequestMapping("/method-1")
 	@ResponseBody
-	public String hello() {
-
+	public String method() {
+		System.out.println("执行handle method...");
 		return "hello,world";
 	}
 }

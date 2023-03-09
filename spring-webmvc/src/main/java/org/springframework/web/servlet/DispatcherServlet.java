@@ -53,6 +53,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
+ * 通过查看源码发现，再web环境下，我们可以有父子容器，
+ * org.springframework.web.context.ContextLoader 可以创建一个父亲容器
+ * 在 DispatcherServlet 中创建的子容器，然后建立父子关系。
+ *
+ * 区分父子容器好处时，加快查找bean的速度，因为对于web 层再DispatcherServlet 中查找就可以
+ * 非web 层的在ContextLoader 创建的容器中查找
+ *
  * Central dispatcher for HTTP request handlers/controllers, e.g. for web UI controllers
  * or HTTP-based remote service exporters. Dispatches to registered handlers for processing
  * a web request, providing convenient mapping and exception handling facilities.
@@ -272,6 +279,7 @@ public class DispatcherServlet extends FrameworkServlet {
 		// This is currently strictly internal and not meant to be customized
 		// by application developers.
 		try {
+			//目前spring不提供应用开发者去覆盖默认实现
 			ClassPathResource resource = new ClassPathResource(DEFAULT_STRATEGIES_PATH, DispatcherServlet.class);
 			defaultStrategies = PropertiesLoaderUtils.loadProperties(resource);
 		}
@@ -503,9 +511,10 @@ public class DispatcherServlet extends FrameworkServlet {
 		//本地语言处理器
 		initLocaleResolver(context);
 		initThemeResolver(context);
-		//handlerMapping处理 （默认处理handlerMapping的类是 BeanNameUrlHandlerMapping）
+		//(重要，必须掌握)handlerMapping处理 （常用类RequestMappingHandlerMapping 看它的afterPropertiesSet，），
+		// 需要知道创建这些handlerMapping bean后，对应生命周期接口做了什么）
 		initHandlerMappings(context);
-		//初始化HandlerAdapters (默认有一个RequestMappingHandlerAdapter ，该类是当我们handler为HandlerMethod 时，会用该类处理)
+		//(重要，必须掌握)初始化HandlerAdapters (默认有一个RequestMappingHandlerAdapter ，该类是当我们handler为HandlerMethod 时，会用该类处理)
 		initHandlerAdapters(context);
 		initHandlerExceptionResolvers(context);
 		initRequestToViewNameTranslator(context);
@@ -619,6 +628,8 @@ public class DispatcherServlet extends FrameworkServlet {
 		// Ensure we have at least one HandlerMapping, by registering
 		// a default HandlerMapping if no other mappings are found.
 		if (this.handlerMappings == null) {
+			//反射出class对象，然后根据class对象创建出相关的handlerMapping 类
+			// 常用的为RequestMappingHandlerMapping
 			this.handlerMappings = getDefaultStrategies(context, HandlerMapping.class);
 			if (logger.isTraceEnabled()) {
 				logger.trace("No HandlerMappings declared for servlet '" + getServletName() +
@@ -658,6 +669,7 @@ public class DispatcherServlet extends FrameworkServlet {
 		// Ensure we have at least some HandlerAdapters, by registering
 		// default HandlerAdapters if no other adapters are found.
 		if (this.handlerAdapters == null) {
+			// 创建配置的HandlerAdapter ，常用的为 RequestMappingHandlerAdapter
 			this.handlerAdapters = getDefaultStrategies(context, HandlerAdapter.class);
 			if (logger.isTraceEnabled()) {
 				logger.trace("No HandlerAdapters declared for servlet '" + getServletName() +
@@ -901,6 +913,8 @@ public class DispatcherServlet extends FrameworkServlet {
 	 * @see org.springframework.beans.factory.config.AutowireCapableBeanFactory#createBean
 	 */
 	protected Object createDefaultStrategy(ApplicationContext context, Class<?> clazz) {
+		//AbstractAutowireCapableBeanFactory.createBean(java.lang.Class<T>) 提供了一个创建bean方法
+		// 注意该方法创建的是一个多例的bean
 		return context.getAutowireCapableBeanFactory().createBean(clazz);
 	}
 
@@ -1026,7 +1040,7 @@ public class DispatcherServlet extends FrameworkServlet {
 				 * 取得当前请求的Controller，这里也称为handler处理器
 				 * 在容器启动阶段保存了url 和 controller的关系
 				 * 这里还没有直接返回controller，返回的是HandlerExecutionChain 请求处理链对象
-				 * 该对象封装了handler 和 interceptors
+				 * 该对象封装了handler 和 interceptor列表
 				 */
 				mappedHandler = getHandler(processedRequest);
 				if (mappedHandler == null) {
@@ -1035,7 +1049,7 @@ public class DispatcherServlet extends FrameworkServlet {
 				}
 
 				// Determine handler adapter for the current request.
-				// 根据当前请求获取handlerAdapter
+				// 该方法就是从适配器列表中获取一个能适配当前handler 的适配器（这里就获取到适配器，后续就对method 方法进行适配）
 				HandlerAdapter ha = getHandlerAdapter(mappedHandler.getHandler());
 
 				// Process last-modified header, if supported by the handler.
@@ -1275,6 +1289,7 @@ public class DispatcherServlet extends FrameworkServlet {
 					new ServletServerHttpRequest(request).getHeaders());
 		}
 		else {
+			//直接写出404 错误，我们后面也可以借鉴，例如鉴权失败，直接通过response 写出403 错误码
 			response.sendError(HttpServletResponse.SC_NOT_FOUND);
 		}
 	}
@@ -1287,6 +1302,7 @@ public class DispatcherServlet extends FrameworkServlet {
 	protected HandlerAdapter getHandlerAdapter(Object handler) throws ServletException {
 		if (this.handlerAdapters != null) {
 			for (HandlerAdapter adapter : this.handlerAdapters) {
+				//当前适配器是否支持该handler，例如 RequestMappingHandlerAdapter 就支持对HandlerMethod 的处理
 				if (adapter.supports(handler)) {
 					return adapter;
 				}

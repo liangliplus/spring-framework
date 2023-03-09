@@ -191,18 +191,26 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 	 */
 	@Override
 	public void afterPropertiesSet() {
+		//在初始化阶段发现所有handlerMethod
 		initHandlerMethods();
 	}
 
 	/**
 	 * Scan beans in the ApplicationContext, detect and register handler methods.
+	 * 该方法就分为三步，
+	 * 1. 从applicationContext 获取beanNames
+	 * 2. 根据beanName 识别对应对应handlerMethods
+	 * 3. 注册 handlerMethods (保存到集合中)
+	 *
 	 * @see #getCandidateBeanNames()
 	 * @see #processCandidateBean
 	 * @see #handlerMethodsInitialized
 	 */
 	protected void initHandlerMethods() {
+		//从beanFactory 中获取所有beanNames
 		for (String beanName : getCandidateBeanNames()) {
 			if (!beanName.startsWith(SCOPED_TARGET_NAME_PREFIX)) {
+				//该方法会识别出对应beanName 的所有handlerMethods
 				processCandidateBean(beanName);
 			}
 		}
@@ -235,6 +243,7 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 	protected void processCandidateBean(String beanName) {
 		Class<?> beanType = null;
 		try {
+			//根据beanName 获取到对应类型，后续通过 isHandler 检索有没有指定注解
 			beanType = obtainApplicationContext().getType(beanName);
 		}
 		catch (Throwable ex) {
@@ -243,7 +252,9 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 				logger.trace("Could not resolve type for bean '" + beanName + "'", ex);
 			}
 		}
+		//在RequestMappingHandlerMapping.isHandler 只会处理`@Controller` 和 `@RequestMapping` 注解
 		if (beanType != null && isHandler(beanType)) {
+			//识别出该beanName 所有符合条件的handlerMethods
 			detectHandlerMethods(beanName);
 		}
 	}
@@ -259,6 +270,7 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 
 		if (handlerType != null) {
 			Class<?> userType = ClassUtils.getUserClass(handlerType);
+			//在@RequestMapping 场景下就是 Method 和 RequestMappingInfo 的对应关系
 			Map<Method, T> methods = MethodIntrospector.selectMethods(userType,
 					(MethodIntrospector.MetadataLookup<T>) method -> {
 						try {
@@ -273,7 +285,10 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 				logger.trace(formatMappings(userType, methods));
 			}
 			methods.forEach((method, mapping) -> {
+				//选择一个可以调用的method （因为controller 可能被代理，找到非代理类对应的方法）
 				Method invocableMethod = AopUtils.selectInvocableMethod(method, userType);
+				//注册handlerMethod （handler是一个字符串，有了字符串，就可以获得对应bean）
+				// 内部又通过 mappingRegistry.register
 				registerHandlerMethod(handler, invocableMethod, mapping);
 			});
 		}
@@ -304,6 +319,11 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 	 * under the same mapping
 	 */
 	protected void registerHandlerMethod(Object handler, Method method, T mapping) {
+		//MappingRegistry 是该类中的一个内部类
+		//大致保存属性 (看mappingRegistry 的成员变量就了解了)
+		//mappingLookup 保存mapping 与 handlerMethod 关系
+		//urlLookup 保存直接能访问的url 与mapping 信息（url 上没有一些Pattern属性，例如正则，@PathViarable等）
+		//registry 保存mapping和 MappingRegistration
 		this.mappingRegistry.register(mapping, handler, method);
 	}
 
@@ -314,6 +334,7 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 	 * @return the created HandlerMethod
 	 */
 	protected HandlerMethod createHandlerMethod(Object handler, Method method) {
+		//handlerMethod 就封装了handler，method，还有对应方法参数信息， 有了这些信息，调用时候就好处理了
 		if (handler instanceof String) {
 			return new HandlerMethod((String) handler,
 					obtainApplicationContext().getAutowireCapableBeanFactory(), method);
@@ -351,12 +372,19 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 	@Nullable
 	protected HandlerMethod getHandlerInternal(HttpServletRequest request) throws Exception {
 		//例如请求url为:http://localhost:8080/web/hello 则lookupPath=web/hello
+		//requestUri 就是 contextPath+path
 		String lookupPath = getUrlPathHelper().getLookupPathForRequest(request);
 		request.setAttribute(LOOKUP_PATH, lookupPath);
+		//在mappingRegistry内部的 mappingLookup 不是线程安全的map， 所以访问需要加锁，又考虑到访问速度原因，
+		//这里使用共享锁，多个读之间不会影响
 		this.mappingRegistry.acquireReadLock();
 		try {
-			//遍历Controller上的所有方法，获取url 匹配的方法， 通过该方法就可以找到处理Request的Controller 方法
+			// 查找对应lookupPath 路径对应handlerMethod
 			HandlerMethod handlerMethod = lookupHandlerMethod(lookupPath, request);
+			//handlerMethod.createWithResolvedBean()
+			// handlerMethod初始化的时候保存的如果为string，这里就会触发依赖查找（getBean）
+			// 然后因为单例bean 有缓存，可以很快返回
+			// 到这里HandlerMethod 就保存bean 实例，请求对应的method， 以及参数列表的MethodParameter[] 数组
 			return (handlerMethod != null ? handlerMethod.createWithResolvedBean() : null);
 		}
 		finally {
@@ -377,6 +405,7 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 	protected HandlerMethod lookupHandlerMethod(String lookupPath, HttpServletRequest request) throws Exception {
 		List<Match> matches = new ArrayList<>();
 		List<T> directPathMatches = this.mappingRegistry.getMappingsByUrl(lookupPath);
+		//直接路径匹配列表
 		if (directPathMatches != null) {
 			addMatchingMappings(directPathMatches, matches, request);
 		}
@@ -385,6 +414,7 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 			addMatchingMappings(this.mappingRegistry.getMappings().keySet(), matches, request);
 		}
 
+		//表示找到了匹配的Match （match 封装了RequestMappingInfo 和  HandlerMethod）
 		if (!matches.isEmpty()) {
 			Match bestMatch = matches.get(0);
 			if (matches.size() > 1) {
@@ -410,6 +440,7 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 			handleMatch(bestMatch.mapping, lookupPath, request);
 			return bestMatch.handlerMethod;
 		}
+		//没有匹配到返回 null，没有HandlerMethod
 		else {
 			return handleNoMatch(this.mappingRegistry.getMappings().keySet(), lookupPath, request);
 		}
@@ -417,8 +448,11 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 
 	private void addMatchingMappings(Collection<T> mappings, List<Match> matches, HttpServletRequest request) {
 		for (T mapping : mappings) {
+			//如果匹配的条件，不为空则返回（就是我们配置再方法上的@RequestMapping 中属性都和请求对的上）
 			T match = getMatchingMapping(mapping, request);
 			if (match != null) {
+				//再初始化时候mappingRegistry 通过mappings 保存mapping 和 HandlerMethod 的关系
+				//在这直接获取就可以了
 				matches.add(new Match(match, this.mappingRegistry.getMappings().get(mapping)));
 			}
 		}
@@ -596,6 +630,7 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 				this.mappingLookup.put(mapping, handlerMethod);
 
 				List<String> directUrls = getDirectUrls(mapping);
+				//保存直接能访问url 与 mapping关系（直接能访问就是url 上面没有占位符等）
 				for (String url : directUrls) {
 					this.urlLookup.add(url, mapping);
 				}
@@ -610,7 +645,7 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 				if (corsConfig != null) {
 					this.corsLookup.put(handlerMethod, corsConfig);
 				}
-
+				//最后保存一个mapping 和 MappingRegistration关系
 				this.registry.put(mapping, new MappingRegistration<>(mapping, handlerMethod, directUrls, name));
 			}
 			finally {

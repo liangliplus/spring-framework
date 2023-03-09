@@ -98,6 +98,15 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 					AnnotatedElementUtils.hasAnnotation(method, ModelAttribute.class));
 
 
+	/**
+	 * 自定义的参数解析器，例如暴露给客户端的服务，对请求信息需要加解密
+	 * 我们自定义的类就会 实现 HandlerMethodArgumentResolver 接口。
+	 * 1.实现supportsParameter 方法 指定那些参数需要自定义解析
+	 * 2.实现 resolveArgument 处理参数具体解析逻辑。
+	 * 接口中含有request 参数，我们可以获取request 的inputStream ，
+	 * 把流通过StreamUtils.copyToByteArray(xxx) 转换字节数组，再处理完成返回实际对象
+	 *
+	 */
 	@Nullable
 	private List<HandlerMethodArgumentResolver> customArgumentResolvers;
 
@@ -521,12 +530,20 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 	}
 
 
+	/**
+	 * 1.针对ControllerAdvice 进行处理
+	 * 2.针对参数解析器做初始化
+	 * 3.针对initBinder参数解析器做初始化
+	 * 4.针对返回值处理器做初始化
+	 */
 	@Override
 	public void afterPropertiesSet() {
 		// Do this first, it may add ResponseBody advice beans
+		// @ControllerAdvice 相关处理
 		initControllerAdviceCache();
 
 		if (this.argumentResolvers == null) {
+			//初始化默认的resolvers（例如引入@RequestParam，@PathVariable， @RequestBody ，@RequestAttribute，@RequestHeader等参数解析支持）
 			List<HandlerMethodArgumentResolver> resolvers = getDefaultArgumentResolvers();
 			this.argumentResolvers = new HandlerMethodArgumentResolverComposite().addResolvers(resolvers);
 		}
@@ -535,6 +552,7 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 			this.initBinderArgumentResolvers = new HandlerMethodArgumentResolverComposite().addResolvers(resolvers);
 		}
 		if (this.returnValueHandlers == null) {
+			//初始化默认返回值处理器（例如我们返回可能是json， ，modelAndView，或者用一个字符串表示视图名称）
 			List<HandlerMethodReturnValueHandler> handlers = getDefaultReturnValueHandlers();
 			this.returnValueHandlers = new HandlerMethodReturnValueHandlerComposite().addHandlers(handlers);
 		}
@@ -812,6 +830,7 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 			//获取模型工厂
 			ModelFactory modelFactory = getModelFactory(handlerMethod, binderFactory);
 
+			//创建一个可调用的handlerMethod （本质就是要为HandlerMethod 增加不同的功能，例如参数解析，返回值处理，数据绑定，参数发现）
 			ServletInvocableHandlerMethod invocableMethod = createInvocableHandlerMethod(handlerMethod);
 			if (this.argumentResolvers != null) {
 				// 如果配置 argumentResolvers， 则添加处理方法参数的解析器
@@ -851,11 +870,14 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 			}
 
 			/**
-			 * （重要） 注意java 反射只提供了获取方法参数类型，并没有提供获取参数名称的方法。
+			 * （非常重要） 注意java 反射只提供了获取方法参数类型，并没有提供获取参数名称的方法。
 			 * spring mvc 是借助asm 框架读取字节码文件来获取方法的参数名称（追求性能，可以使用注解来完成参数绑定，省去asm框架读取字节码操作）
 			 * 1. 通过注解中参数名进行绑定 @RequestParam("xxx")
 			 * 2. 通过参数名称进行绑定 String abc, 例如请求有abc
-			 * 3.
+			 *
+			 * webRequest 封装了请求和响应
+			 * mavContainer 初始化model 后传入
+			 *
 			 */
 			invocableMethod.invokeAndHandle(webRequest, mavContainer);
 			if (asyncManager.isConcurrentHandlingStarted()) {

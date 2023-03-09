@@ -16,18 +16,6 @@
 
 package org.springframework.web.servlet.mvc.method.annotation;
 
-import java.lang.reflect.AnnotatedElement;
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Predicate;
-
-import javax.servlet.http.HttpServletRequest;
-
 import org.springframework.context.EmbeddedValueResolverAware;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.MergedAnnotation;
@@ -52,6 +40,13 @@ import org.springframework.web.servlet.mvc.condition.ConsumesRequestCondition;
 import org.springframework.web.servlet.mvc.condition.RequestCondition;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfoHandlerMapping;
+
+import javax.servlet.http.HttpServletRequest;
+import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.util.*;
+import java.util.function.Predicate;
 
 /**
  * Creates {@link RequestMappingInfo} instances from type and method-level
@@ -175,6 +170,11 @@ public class RequestMappingHandlerMapping extends RequestMappingInfoHandlerMappi
 		this.embeddedValueResolver = resolver;
 	}
 
+	/**
+	 *  afterPropertiesSet 为bean 实例化后，初始化阶段会调用。
+	 *  该类的实现会解析`@RequestMapping` 注解，并保存handler 与 method 的关系
+	 *  详细实现见 super.afterPropertiesSet()
+	 */
 	@Override
 	@SuppressWarnings("deprecation")
 	public void afterPropertiesSet() {
@@ -256,6 +256,7 @@ public class RequestMappingHandlerMapping extends RequestMappingInfoHandlerMappi
 		if (info != null) {
 			RequestMappingInfo typeInfo = createRequestMappingInfo(handlerType);
 			if (typeInfo != null) {
+				//组合info （因为可能存在Controller 上也标记了@RequestMapping）
 				info = typeInfo.combine(info);
 			}
 			String prefix = getPathPrefix(handlerType);
@@ -342,11 +343,14 @@ public class RequestMappingHandlerMapping extends RequestMappingInfoHandlerMappi
 				.params(requestMapping.params())
 				.headers(requestMapping.headers())
 				.consumes(requestMapping.consumes())
+				//对应http accept
 				.produces(requestMapping.produces())
+				//配置的路径
 				.mappingName(requestMapping.name());
 		if (customCondition != null) {
 			builder.customCondition(customCondition);
 		}
+		//再构建内部会初始化一些额外属性，例如pattern
 		return builder.options(this.config).build();
 	}
 

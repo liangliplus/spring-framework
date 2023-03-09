@@ -5,8 +5,29 @@
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
 
-    <context:component-scan base-package="indi.kenneth.mvc.controller"/>
-    <mvc:annotation-driven/>
+	<context:component-scan base-package="indi.kenneth.mvc.controller"/>
+	<!--例如我们dispatcherServlet 拦截所有，我们配置不需要拦截静态资源 -->
+	<!--<mvc:resources mapping="/css/**" location="/css/"/>
+	<mvc:resources mapping="/images/**" location="/img/"/>
+	<mvc:resources mapping="/js/**" location="/js/"/>-->
+
+	<!-- 配置拦截器 -->
+	<mvc:interceptors>
+		<mvc:interceptor>
+			<!--拦截所有 -->
+			<mvc:mapping path="/**"/>
+			<bean class="indi.kenneth.mvc.config.MyHandlerInterceptor"/>
+		</mvc:interceptor>
+	</mvc:interceptors>
+
+	<!-- mvc:annotation-driven 就等价于 标记了 @EnableWebMvc  注解-->
+    <!--<mvc:annotation-driven/>-->
+
+
+
+
+
+
 
     <!-- 3、配置映射处理器:控制类的类名控制器，访问时类名首字母需要小写 -->
     <!-- <bean class="org.springframework.web.servlet.mvc.support.ControllerClassNameHandlerMapping"></bean> -->
