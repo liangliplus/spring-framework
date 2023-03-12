@@ -16,6 +16,8 @@ dependencies {
 
     testCompile(project(":spring-test"))
     testFixturesImplementation("org.assertj:assertj-core")
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.10.4'
+
 
     compile(project(":spring-aop"))
     compile(project(":spring-beans"))

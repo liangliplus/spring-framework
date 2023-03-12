@@ -1149,6 +1149,7 @@ public class DispatcherServlet extends FrameworkServlet {
 
 		// Did the handler return a view to render?
 		if (mv != null && !mv.wasCleared()) {
+			//渲染视图
 			render(mv, request, response);
 			if (errorView) {
 				WebUtils.clearErrorRequestAttributes(request);
@@ -1167,6 +1168,7 @@ public class DispatcherServlet extends FrameworkServlet {
 
 		if (mappedHandler != null) {
 			// Exception (if any) is already handled..
+			// 顺序调用拦截器链中每个interceptor afterCompletion方法
 			mappedHandler.triggerAfterCompletion(request, response, null);
 		}
 	}
@@ -1406,6 +1408,9 @@ public class DispatcherServlet extends FrameworkServlet {
 			if (mv.getStatus() != null) {
 				response.setStatus(mv.getStatus().value());
 			}
+			//调用view.render渲染方法
+			// view是mvc 架构模式中的V， 为对应接口抽象， 不同子类渲染的视图不一样
+			// spring 有多种模板引擎（Thymeleaf，freemarker， jsp等 ）
 			view.render(mv.getModelInternal(), request, response);
 		}
 		catch (Exception ex) {

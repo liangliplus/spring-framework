@@ -21,11 +21,22 @@
 	</mvc:interceptors>
 
 	<!-- mvc:annotation-driven 就等价于 标记了 @EnableWebMvc  注解-->
-    <!--<mvc:annotation-driven/>-->
-
-
-
-
+	<!-- 支持mvc注解驱动，并且配置解决json乱码问题 -->
+	<mvc:annotation-driven>
+		<!--&lt;!&ndash; 为什么添加下面两个转换器就可以 转换消息 &ndash;&gt;
+		<mvc:message-converters register-defaults="true">
+			<bean class="org.springframework.http.converter.StringHttpMessageConverter">
+				<constructor-arg value="UTF-8"/>
+			</bean>
+			<bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+				<property name="objectMapper">
+					<bean class="org.springframework.http.converter.json.Jackson2ObjectMapperFactoryBean">
+						<property name="failOnEmptyBeans" value="false"/>
+					</bean>
+				</property>
+			</bean>
+		</mvc:message-converters>-->
+	</mvc:annotation-driven>
 
 
 
@@ -33,7 +44,7 @@
     <!-- <bean class="org.springframework.web.servlet.mvc.support.ControllerClassNameHandlerMapping"></bean> -->
     <!-- 配置视图解析器 如何把handler 方法返回值解析为实际的物理视图  根据控制器返回的字符串拼接成jsp路径：/WEB-INF/page/xx.jsp -->
     <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
-        <property name="prefix" value="/WEB-INF/views/"/><!-- 前缀 -->
+        <property name="prefix" value="/META-INF/views/"/><!-- 前缀 -->
         <property name="suffix" value=".jsp"/><!-- 后缀 -->
     </bean>
 </beans>

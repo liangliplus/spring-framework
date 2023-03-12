@@ -179,6 +179,7 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 		catch (Error err) {
 			// Ignore when no TransformerFactory implementation is available
 		}
+		//添加所有能解析HttpMessage的转换器
 		this.messageConverters.add(new AllEncompassingFormHttpMessageConverter());
 	}
 
@@ -846,6 +847,7 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 
 			ModelAndViewContainer mavContainer = new ModelAndViewContainer();
 			mavContainer.addAllAttributes(RequestContextUtils.getInputFlashMap(request));
+			//初始化@ModelAttribute 注解，放入作用域中
 			modelFactory.initModel(webRequest, mavContainer, invocableMethod);
 			mavContainer.setIgnoreDefaultModelOnRedirect(this.ignoreDefaultModelOnRedirect);
 
@@ -875,8 +877,12 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 			 * 1. 通过注解中参数名进行绑定 @RequestParam("xxx")
 			 * 2. 通过参数名称进行绑定 String abc, 例如请求有abc
 			 *
+			 * invocableMethod 该对象具有方法参数的解析，返回值解析器，数据绑定器
 			 * webRequest 封装了请求和响应
 			 * mavContainer 初始化model 后传入
+			 *
+			 * 对于 ViewNameMethodReturnValueHandler#handleReturnValue(java.lang.Object, org.springframework.core.MethodParameter, org.springframework.web.method.support.ModelAndViewContainer, org.springframework.web.context.request.NativeWebRequest)
+			 * 仅仅设置一个mavContainer.setViewName
 			 *
 			 */
 			invocableMethod.invokeAndHandle(webRequest, mavContainer);
@@ -884,6 +890,7 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 				return null;
 			}
 
+			//该方法本质就是保存请求信息和响应ModelAndViewContainer 最后会构建ModelAndView
 			return getModelAndView(mavContainer, modelFactory, webRequest);
 		}
 		finally {
@@ -997,6 +1004,9 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 		if (!mavContainer.isViewReference()) {
 			mav.setView((View) mavContainer.getView());
 		}
+		/**
+		 * 如果我们需要在redirect 中使用attribute，就要使用RedirectAttributes （内部实现和FlashMap）
+		 */
 		if (model instanceof RedirectAttributes) {
 			Map<String, ?> flashAttributes = ((RedirectAttributes) model).getFlashAttributes();
 			HttpServletRequest request = webRequest.getNativeRequest(HttpServletRequest.class);

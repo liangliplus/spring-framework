@@ -16,15 +16,15 @@
 
 package org.springframework.http.converter;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.lang.reflect.Type;
-
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
 import org.springframework.http.StreamingHttpOutputMessage;
 import org.springframework.lang.Nullable;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.lang.reflect.Type;
 
 /**
  * Abstract base class for most {@link GenericHttpMessageConverter} implementations.
@@ -101,7 +101,9 @@ public abstract class AbstractGenericHttpMessageConverter<T> extends AbstractHtt
 			}));
 		}
 		else {
+			//通过writeInternal ,把对象t转换json，并写道outputMessage的outputStream
 			writeInternal(t, type, outputMessage);
+			//接着调用flush方法，把消息写出去。
 			outputMessage.getBody().flush();
 		}
 	}

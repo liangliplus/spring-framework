@@ -16,13 +16,13 @@
 
 package org.springframework.http.converter;
 
-import java.io.IOException;
-import java.lang.reflect.Type;
-
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
 import org.springframework.lang.Nullable;
+
+import java.io.IOException;
+import java.lang.reflect.Type;
 
 /**
  * A specialization of {@link HttpMessageConverter} that can convert an HTTP request
@@ -68,6 +68,7 @@ public interface GenericHttpMessageConverter<T> extends HttpMessageConverter<T> 
 			throws IOException, HttpMessageNotReadableException;
 
 	/**
+	 * 支持了Type 类型是否可以判断，再HttpMessageConverter 传入的是Class 有泛型无法判断
 	 * Indicates whether the given class can be written by this converter.
 	 * <p>This method should perform the same checks than
 	 * {@link HttpMessageConverter#canWrite(Class, MediaType)} with additional ones

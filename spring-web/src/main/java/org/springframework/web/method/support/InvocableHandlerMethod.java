@@ -136,7 +136,7 @@ public class InvocableHandlerMethod extends HandlerMethod {
 		if (logger.isTraceEnabled()) {
 			logger.trace("Arguments: " + Arrays.toString(args));
 		}
-		//执行调用
+		//执行反射调用
 		return doInvoke(args);
 	}
 

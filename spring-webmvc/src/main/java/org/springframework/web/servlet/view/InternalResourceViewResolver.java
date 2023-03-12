@@ -59,6 +59,10 @@ public class InternalResourceViewResolver extends UrlBasedViewResolver {
 	 * Sets the default {@link #setViewClass view class} to {@link #requiredViewClass}:
 	 * by default {@link InternalResourceView}, or {@link JstlView} if the JSTL API
 	 * is present.
+	 *
+	 *  <property name="prefix" value="/META-INF/views/"/>
+	 *  <property name="suffix" value=".jsp"/>
+	 *
 	 */
 	public InternalResourceViewResolver() {
 		Class<?> viewClass = requiredViewClass();
