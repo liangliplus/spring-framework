@@ -1,0 +1,20 @@
+#构建跳过对应模块task
+gradle :myspringtest:compileJava
+
+#跳过测试
+gradle :myspringtest:compileJava -X test
+
+
+#从根目录开始编译
+gradle build -X test
+
+
+#可以通过gradle wrapper 来生成wrapper
+#包含一个.gradle 文件夹， 一个wrapper文件夹， 一个windows 和 linux 的gradlew 执行命令
+gradle wrapper
+
+
+#也可以使用gradlew 来执行命令
+
+
+

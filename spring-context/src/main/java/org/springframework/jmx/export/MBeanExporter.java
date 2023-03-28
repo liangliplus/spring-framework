@@ -16,41 +16,11 @@
 
 package org.springframework.jmx.export;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.management.DynamicMBean;
-import javax.management.JMException;
-import javax.management.MBeanException;
-import javax.management.MBeanServer;
-import javax.management.MalformedObjectNameException;
-import javax.management.NotCompliantMBeanException;
-import javax.management.NotificationListener;
-import javax.management.ObjectName;
-import javax.management.StandardMBean;
-import javax.management.modelmbean.ModelMBean;
-import javax.management.modelmbean.ModelMBeanInfo;
-import javax.management.modelmbean.RequiredModelMBean;
-
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.aop.scope.ScopedProxyUtils;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.aop.target.LazyInitTargetSource;
-import org.springframework.beans.factory.BeanClassLoaderAware;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.BeanFactoryAware;
-import org.springframework.beans.factory.CannotLoadBeanClassException;
-import org.springframework.beans.factory.DisposableBean;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.ListableBeanFactory;
-import org.springframework.beans.factory.SmartInitializingSingleton;
+import org.springframework.beans.factory.*;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.core.Constants;
@@ -69,6 +39,12 @@ import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.ObjectUtils;
+
+import javax.management.*;
+import javax.management.modelmbean.ModelMBean;
+import javax.management.modelmbean.ModelMBeanInfo;
+import javax.management.modelmbean.RequiredModelMBean;
+import java.util.*;
 
 /**
  * JMX exporter that allows for exposing any <i>Spring-managed bean</i> to a
@@ -99,6 +75,11 @@ import org.springframework.util.ObjectUtils;
  * @see #setListeners
  * @see org.springframework.jmx.export.assembler.MBeanInfoAssembler
  * @see MBeanExporterListener
+ * 该类实现了 InitializingBean 和 SmartInitializingSingleton
+ * 分别对应 afterPropertiesSet  --> JmxUtils.locateMBeanServer();
+ * afterSingletonsInstantiated（spring中所有非懒加载bean初始化完成之后回调）
+ * --> registerBeans();
+ *
  */
 public class MBeanExporter extends MBeanRegistrationSupport implements MBeanExportOperations,
 		BeanClassLoaderAware, BeanFactoryAware, InitializingBean, SmartInitializingSingleton, DisposableBean {
@@ -523,6 +504,7 @@ public class MBeanExporter extends MBeanRegistrationSupport implements MBeanExpo
 	protected void registerBeans() {
 		// The beans property may be null, for example if we are relying solely on autodetection.
 		if (this.beans == null) {
+			//如果没有手动指定beans，则会转换自动探测模式
 			this.beans = new HashMap<>();
 			// Use AUTODETECT_ALL as default in no beans specified explicitly.
 			if (this.autodetectMode == null) {
@@ -536,6 +518,7 @@ public class MBeanExporter extends MBeanRegistrationSupport implements MBeanExpo
 			if (this.beanFactory == null) {
 				throw new MBeanExportException("Cannot autodetect MBeans if not running in a BeanFactory");
 			}
+			//自动探测用户定义的MBean
 			if (mode == AUTODETECT_MBEAN || mode == AUTODETECT_ALL) {
 				// Autodetect any beans that are already MBeans.
 				logger.debug("Autodetecting user-defined JMX MBeans");
@@ -548,6 +531,8 @@ public class MBeanExporter extends MBeanRegistrationSupport implements MBeanExpo
 			}
 		}
 
+		//如果用户有设置beans 或者 自动探测到MBean 添加到beans，进行实例的注册,
+		//ObjectName 的生成通过 namingStrategy
 		if (!this.beans.isEmpty()) {
 			this.beans.forEach((beanName, instance) -> registerBeanNameOrInstance(instance, beanName));
 		}
@@ -587,6 +572,7 @@ public class MBeanExporter extends MBeanRegistrationSupport implements MBeanExpo
 	 */
 	protected ObjectName registerBeanNameOrInstance(Object mapValue, String beanKey) throws MBeanExportException {
 		try {
+			//如果传入的mapValue 是字符串，对于非懒加载bean，则触发依赖查找（getBean）
 			if (mapValue instanceof String) {
 				// Bean name pointing to a potentially lazy-init bean in the factory.
 				if (this.beanFactory == null) {
@@ -608,11 +594,14 @@ public class MBeanExporter extends MBeanRegistrationSupport implements MBeanExpo
 			else {
 				// Plain bean instance -> register it directly.
 				if (this.beanFactory != null) {
+					//获取当前类型从beanFactory中获取beans
 					Map<String, ?> beansOfSameType =
 							this.beanFactory.getBeansOfType(mapValue.getClass(), false, this.allowEagerInit);
 					for (Map.Entry<String, ?> entry : beansOfSameType.entrySet()) {
 						if (entry.getValue() == mapValue) {
 							String beanName = entry.getKey();
+							//注册(这里的beanKey 就是我们配置在容器的BeanName，只不过我们一般配置为符合MBean规范的
+							// 例如xxx.xxx.domain:name=myBean)
 							ObjectName objectName = registerBeanInstance(mapValue, beanKey);
 							replaceNotificationListenerBeanNameKeysIfNecessary(beanName, objectName);
 							return objectName;
@@ -652,12 +641,15 @@ public class MBeanExporter extends MBeanRegistrationSupport implements MBeanExpo
 	 * with the {@code MBeanServer}
 	 */
 	private ObjectName registerBeanInstance(Object bean, String beanKey) throws JMException {
+		//获得ObjectName
 		ObjectName objectName = getObjectName(bean, beanKey);
 		Object mbeanToExpose = null;
+		//判断是否为MBean ,MXBean或者 DynamicMBean
 		if (isMBean(bean.getClass())) {
 			mbeanToExpose = bean;
 		}
 		else {
+			//非MBean 适配为DynamicMBean
 			DynamicMBean adaptedBean = adaptMBeanIfPossible(bean);
 			if (adaptedBean != null) {
 				mbeanToExpose = adaptedBean;
@@ -671,11 +663,21 @@ public class MBeanExporter extends MBeanRegistrationSupport implements MBeanExpo
 			}
 			doRegister(mbeanToExpose, objectName);
 		}
+		//当我们Bean 既没有被aop代理，也没有实现MBean 接口就会进入下面逻辑
 		else {
 			if (logger.isDebugEnabled()) {
 				logger.debug("Located managed bean '" + beanKey + "': registering with JMX server as MBean [" +
 						objectName + "]");
 			}
+			//JMX 标准MBean 一共有四种
+			//1.标准MBean ， 创建一个接口，该接口命名规范为 java类名+MBean 后缀，例如UserMBean
+			//2.动态类型DynamicMBean （在代理场景用到）
+			//3.开放类型
+			//4.模型类型ModelMBean（好处不需要定义接口，使用ModelMbean来表示，java中ModelMbean默认实现RequiredModelMBean）
+
+			// 第一种方式最简单，但是灵活性比较差。
+			// 编写ModelMbean的方式：
+			// ModelMBean对象托管资源的那些属性和方法可以暴露给代理
 			ModelMBean mbean = createAndConfigureMBean(bean, beanKey);
 			doRegister(mbean, objectName);
 			injectNotificationPublisherIfNecessary(bean, mbean, objectName);
@@ -818,7 +820,9 @@ public class MBeanExporter extends MBeanRegistrationSupport implements MBeanExpo
 			throws MBeanExportException {
 		try {
 			ModelMBean mbean = createModelMBean();
+			//调用setModelMBeanInfo(当我们类上标记了`@ManagedResource`,就会解析该注册配置)
 			mbean.setModelMBeanInfo(getMBeanInfo(managedResource, beanKey));
+			//调用setManagedResource(managedResourceType的值只可以是下面之一：ObjectReference、Handle、IOR、EJBHandle或者RMIReference。当前只支持ObjectReference)
 			mbean.setManagedResource(managedResource, MR_TYPE_OBJECT_REFERENCE);
 			return mbean;
 		}

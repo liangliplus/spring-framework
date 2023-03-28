@@ -18,7 +18,7 @@ public class Result<T> {
 
 
 	public static <T> Result<T> success(T data) {
-		Result result = new Result(200,"success",data);
+		Result<T> result = new Result<>(200,"success",data);
 		return result;
 	}
 
