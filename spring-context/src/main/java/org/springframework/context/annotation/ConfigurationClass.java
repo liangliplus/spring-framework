@@ -48,6 +48,9 @@ import org.springframework.util.ClassUtils;
  */
 final class ConfigurationClass {
 
+	/**
+	 * 元数据信息，获取到 ”配置类“ class对象所有信息
+	 */
 	private final AnnotationMetadata metadata;
 
 	private final Resource resource;
@@ -55,13 +58,32 @@ final class ConfigurationClass {
 	@Nullable
 	private String beanName;
 
+	/**
+	 * 当前类如果是通过@Import 导入的 ，importBy 就是记录配置类
+	 * 记录当前类是被谁导入的
+	 * 例如
+	 * @Configuration
+	 * @Import({B.class})
+	 * public class AppConfig {
+	 * }
+	 * 这里B就是当前ConfigurationClass， importedBy属性就是AppConfig
+	 */
 	private final Set<ConfigurationClass> importedBy = new LinkedHashSet<>(1);
 
+	/**
+	 * 带@Bean 注解的方法集合
+	 */
 	private final Set<BeanMethod> beanMethods = new LinkedHashSet<>();
 
+	/**
+	 * 需要导入的资源集合
+	 */
 	private final Map<String, Class<? extends BeanDefinitionReader>> importedResources =
 			new LinkedHashMap<>();
 
+	/**
+	 * @Import 注解导入 的ImportBeanDefinitionRegistrar
+	 */
 	private final Map<ImportBeanDefinitionRegistrar, AnnotationMetadata> importBeanDefinitionRegistrars =
 			new LinkedHashMap<>();
 

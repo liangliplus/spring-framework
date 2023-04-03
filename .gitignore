@@ -17,10 +17,14 @@ argfile*
 pom.xml
 activemq-data/
 
+hs_err_pid*.log
+replay_pid*.log
+
+
 classes/
 /build
 buildSrc/build
-/myspring-*/build
+/myspring*/build
 /spring-*/build
 /spring-core/kotlin-coroutines/build
 /framework-bom/build
