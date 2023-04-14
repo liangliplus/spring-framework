@@ -529,7 +529,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			if (!mbd.postProcessed) {
 				try {
 					//调用 MergedBeanDefinitionPostProcessor#postProcessMergedBeanDefinition
-					// (AutowiredAnnotationBeanPostProcessor也是该类型)
+					// (AutowiredAnnotationBeanPostProcessor也是该类型,会在该方法收集`@Autowired` 和 `@Value` 以及javax依赖注入的注解)
 					applyMergedBeanDefinitionPostProcessors(mbd, beanType, beanName);
 				}
 				catch (Throwable ex) {
@@ -1403,11 +1403,13 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			for (BeanPostProcessor bp : getBeanPostProcessors()) {
 				if (bp instanceof InstantiationAwareBeanPostProcessor) {
 					InstantiationAwareBeanPostProcessor ibp = (InstantiationAwareBeanPostProcessor) bp;
+					//依赖注入的过程，@Autowired 的支持。
 					PropertyValues pvsToUse = ibp.postProcessProperties(pvs, bw.getWrappedInstance(), beanName);
 					if (pvsToUse == null) {
 						if (filteredPds == null) {
 							filteredPds = filterPropertyDescriptorsForDependencyCheck(bw, mbd.allowCaching);
 						}
+						//老版本使用这个完成依赖注入（@Autowired）的过程
 						pvsToUse = ibp.postProcessPropertyValues(pvs, filteredPds, bw.getWrappedInstance(), beanName);
 						if (pvsToUse == null) {
 							return;
@@ -1425,7 +1427,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		if (pvs != null) {
-			// (重要) 对属性进行注入
+			// 对属性进行注入(老版本用<property name="xxx" value="xxx">)
 			applyPropertyValues(beanName, mbd, bw, pvs);
 		}
 	}

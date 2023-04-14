@@ -894,6 +894,10 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			return null;
 		}
 		String result = value;
+		//这个embeddedValueResolvers 是在
+		// PlaceholderConfigurerSupport
+		//beanFactoryToProcess.addEmbeddedValueResolver(valueResolver) 设置进去的
+		//最终就会到valueResolver 解析值了
 		for (StringValueResolver resolver : this.embeddedValueResolvers) {
 			result = resolver.resolveStringValue(result);
 			if (result == null) {

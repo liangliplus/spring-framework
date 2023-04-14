@@ -147,6 +147,7 @@ public class PropertyPlaceholderHelper {
 					throw new IllegalArgumentException(
 							"Circular placeholder reference '" + originalPlaceholder + "' in property definitions");
 				}
+				//递归解析 ${${}}
 				// Recursive invocation, parsing placeholders contained in the placeholder key.
 				placeholder = parseStringValue(placeholder, placeholderResolver, visitedPlaceholders);
 				// Now obtain the value for the fully resolved key...
@@ -155,7 +156,11 @@ public class PropertyPlaceholderHelper {
 					int separatorIndex = placeholder.indexOf(this.valueSeparator);
 					if (separatorIndex != -1) {
 						String actualPlaceholder = placeholder.substring(0, separatorIndex);
+						// 获取 ":" 号后面默认值
 						String defaultValue = placeholder.substring(separatorIndex + this.valueSeparator.length());
+						// ":" 号前面的参数解析
+						// 本质逻辑就是 例如我们配置@Value(${server.port:8080}) 把我们${server.port} 解析出来
+						// 如何解析？ 从PropertySources 对象用server.port 作为key去获取值，就可以拿到我们配置文件中的值
 						propVal = placeholderResolver.resolvePlaceholder(actualPlaceholder);
 						if (propVal == null) {
 							propVal = defaultValue;

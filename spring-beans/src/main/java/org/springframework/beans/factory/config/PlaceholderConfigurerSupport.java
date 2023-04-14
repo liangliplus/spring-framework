@@ -224,6 +224,9 @@ public abstract class PlaceholderConfigurerSupport extends PropertyResourceConfi
 			if (!(curName.equals(this.beanName) && beanFactoryToProcess.equals(this.beanFactory))) {
 				BeanDefinition bd = beanFactoryToProcess.getBeanDefinition(curName);
 				try {
+					//把BeanDefinition 中属性的值，例如${xxx.name} 解析真正的配置属性值
+					// 注意上面visitor 接受了一个valueResolver
+					// 该方法指定完，BeanDefinition 中的占位符就被解析为具体的值了，后续就是@Value 就可以注入了
 					visitor.visitBeanDefinition(bd);
 				}
 				catch (Exception ex) {

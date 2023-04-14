@@ -48,6 +48,14 @@ public class PropertySourcesPlaceholderConfigurerTests {
 
 
 	@Test
+	public void sysProperties() {
+		System.out.println(" =====================sys====================");
+		System.out.println(System.getProperties());
+		System.out.println(" =====================env====================");
+		System.out.println(System.getenv());
+	}
+
+	@Test
 	public void replacementFromEnvironmentProperties() {
 		DefaultListableBeanFactory bf = new DefaultListableBeanFactory();
 		bf.registerBeanDefinition("testBean",
@@ -75,6 +83,7 @@ public class PropertySourcesPlaceholderConfigurerTests {
 
 		PropertySourcesPlaceholderConfigurer ppc = new PropertySourcesPlaceholderConfigurer();
 		Resource resource = new ClassPathResource("PropertySourcesPlaceholderConfigurerTests.properties", this.getClass());
+		//设置了一个Location
 		ppc.setLocation(resource);
 		ppc.postProcessBeanFactory(bf);
 		assertThat(bf.getBean(TestBean.class).getName()).isEqualTo("foo");

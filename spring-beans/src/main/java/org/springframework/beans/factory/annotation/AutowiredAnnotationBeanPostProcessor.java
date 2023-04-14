@@ -464,7 +464,8 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 		do {
 			final List<InjectionMetadata.InjectedElement> currElements = new ArrayList<>();
 
-			//在该类上找标记依赖注入相关注解（@Autowired，@Value等 ）
+			//寻找该类字段上标记依赖注入相关注解（@Autowired，@Value等 ）
+			//收集完成后就把 字段变为 AutowiredFieldElement
 			ReflectionUtils.doWithLocalFields(targetClass, field -> {
 				MergedAnnotation<?> ann = findAutowiredAnnotation(field);
 				if (ann != null) {
@@ -479,7 +480,7 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 				}
 			});
 
-			//在该类方法上找标记依赖注入相关注解（@Autowired，@Value等 ）
+			//在该类方法上找标记依赖注入相关注解（或者方法参数标记了相关注解）（@Autowired，@Value等 ）
 			ReflectionUtils.doWithLocalMethods(targetClass, method -> {
 				Method bridgedMethod = BridgeMethodResolver.findBridgedMethod(method);
 				if (!BridgeMethodResolver.isVisibilityBridgeMethodPair(method, bridgedMethod)) {
@@ -634,7 +635,7 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 				}
 			}
 			else {
-				//解析字段的值，就是获取标记@Autowired 字段的来源
+				//解析字段的值，就是获取标记@Autowired | @Value字段的来源
 				value = resolveFieldValue(field, bean, beanName);
 			}
 			//如果值不为空则反射调用
@@ -655,6 +656,7 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 			try {
 				//会往autowiredBeanNames 放值（注意注入可能有多个beanName，例如我们注入一个接口可能会有多个实现类）
 				// 如何解析autowired来源  （目前有了beanName 和 BeanFactory ） ？？
+				// 本次还是从IOC 工厂查找来源
 				value = beanFactory.resolveDependency(desc, beanName, autowiredBeanNames, typeConverter);
 			}
 			catch (BeansException ex) {
